@@ -51,27 +51,51 @@ def start_connection(host, port, game_type, ai_difficulty):
 def handle_server_response(response, data):
     print(f"Received response from server: {response}")
 
-    # Handling AI move messages
-    if "AI moved to column" in response:
-        # This assumes the message is correctly formed as "AI moved to column X. "
-        ai_move_msg = response.split("AI moved to column ")[1].split(".")[0]
-        print(f"AI made a move in column {ai_move_msg}.")
+    # Split the response by lines for easier parsing
+    response_lines = response.split('\n')
 
-    # Handle game status updates
-    if "Game Status: ONGOING" in response:
-        print("Game is ongoing. Your turn.")
-    elif "Game Status: WIN" in response or "Game Status: DRAW" in response:
-        # Extract and display the complete status message
-        status_msg = response.split("Game Status: ")[1].split("\n")[0]
-        print(f"Game over: {status_msg}")
-        sys.exit(0)  # Exit the client if the game is over
-    elif "Invalid move" in response:
-        print("Invalid move. Try again.")
-    
-    if "Board State:" in response:
-        board_state = response.split("Board State:\n")[1].split("\n\n")[0]
-        print("Current board state:")
-        print(board_state)
+    # Initialize a flag to track if the board state is being processed
+    processing_board_state = False
+    board_state_lines = []
+
+    for line in response_lines:
+        # Handle the start of the board state section
+        if "Board State:" in line:
+            processing_board_state = True
+            board_state_lines = []  # Reset the list to start collecting board state lines
+            continue  # Move to the next line
+
+        # If processing the board state, collect lines until the section ends
+        if processing_board_state:
+            if line.strip():  # If the line is not empty, add it to the board state lines
+                board_state_lines.append(line)
+            else:  # An empty line signifies the end of the board state section
+                processing_board_state = False  # Stop processing board state
+                # Print the collected board state
+                print("Current board state:")
+                for board_line in board_state_lines:
+                    print(board_line)
+                continue  # Move to the next line after processing the board state
+
+        # Handle AI move messages
+        if "AI moved to column" in line:
+            # Extract the column where AI made its move
+            ai_move_msg = line.split("AI moved to column ")[1].split(".")[0]
+            print(f"AI made a move in column {ai_move_msg}.")
+
+        # Handle game status updates
+        if "Game Status:" in line:
+            # Extract and display the complete status message
+            status_msg = line.split("Game Status: ")[1]
+            print(f"Game status: {status_msg}")
+            if "WIN" in status_msg or "DRAW" in status_msg:
+                print(f"Game over: {status_msg}")
+                sys.exit(0)  # Exit the client if the game is over
+
+        # Handle invalid move responses
+        if "Invalid move" in line:
+            print("Invalid move. Try again.")
+
 
 
 def service_connection(key, mask):

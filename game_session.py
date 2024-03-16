@@ -17,6 +17,12 @@ class GameSession:
         self.turn = game_logic.PLAYER1  # Player1 starts by default
         self.winner = None
         self.draw = False
+        self.is_ai_game = bool(ai_difficulty)
+        self.state = "waiting"  # Initial state, will change to 'ready' or 'started'
+
+    def update_state(self, new_state):
+        """Update the session's state."""
+        self.state = new_state
 
     def make_move(self, column, player_id):
         """Attempt to make a move on the board and handle AI response if applicable."""
@@ -44,7 +50,6 @@ class GameSession:
         """Switch turns between PLAYER1 and PLAYER2."""
         self.turn = game_logic.PLAYER2 if self.turn == game_logic.PLAYER1 else game_logic.PLAYER1
 
-    # Inside the GameSession class in game_session.py
     def make_ai_move(self):
         """Makes a move for the AI based on the specified difficulty."""
         if self.ai_difficulty and "AI" in self.players and self.turn == game_logic.PLAYER2:
@@ -63,9 +68,6 @@ class GameSession:
                 return ai_column  # Return the column where AI made its move for server notification
         return None  # AI did not make a move (should not happen in practice, included for completeness)
 
-
-
-
     def get_board_state(self):
         """Return the current game board."""
         return self.board
@@ -80,5 +82,5 @@ class GameSession:
             return "ONGOING"
     
     def serialize_board(self):
+        """Return the board state as a string for easy transmission over the network."""
         return '\n'.join(['|'.join(row) for row in self.board])
-
