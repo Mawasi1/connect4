@@ -1,3 +1,7 @@
+# Student's name: Aladin Nour Mawasi
+# Student's ID: 316172410
+
+
 import selectors
 import socket
 import types
@@ -179,7 +183,7 @@ def update_game_state(session, session_id):
             message += f"Series winner: {series_winner}\n"
             message += f"Player wins: {session.player_wins}, AI wins: {session.ai_wins}\n"
             log(f"Series ended for session {session_id}. Series winner: {series_winner}")
-            # Reset the session or perform necessary cleanup
+            # Reset the session 
             session.player_wins = 0
             session.ai_wins = 0
             session.reset_board()

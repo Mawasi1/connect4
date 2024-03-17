@@ -1,3 +1,7 @@
+# Student's name: Aladin Nour Mawasi
+# Student's ID: 316172410
+
+
 ROWS, COLUMNS = 6, 7
 EMPTY, PLAYER1, PLAYER2 = " ", "X", "O"
 
@@ -5,7 +9,7 @@ EMPTY, PLAYER1, PLAYER2 = " ", "X", "O"
 def create_board():
     return [[EMPTY for _ in range(COLUMNS)] for _ in range(ROWS)]
 
-# Print the game board (for debugging purposes or simple CLI interface)
+# Print the game board (simple CLI interface)
 def print_board(board):
     for row in board:
         print('|' + '|'.join(row) + '|')

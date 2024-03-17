@@ -1,6 +1,9 @@
+# Student's name: Aladin Nour Mawasi
+# Student's ID: 316172410
+
 import uuid
-import game_logic  # Make sure this import works based on your project structure
-import game_ai  # Importing the game AI logic
+import game_logic  
+import game_ai  
 
 class GameSession:
     def __init__(self, player1, ai_difficulty=None, is_ai_game=False,num_wins=1):
@@ -8,7 +11,7 @@ class GameSession:
         self.board = game_logic.create_board()
         self.players = {player1: game_logic.PLAYER1}
         self.ai_difficulty = ai_difficulty
-        self.is_ai_game = is_ai_game  # Now correctly set based on the constructor parameter
+        self.is_ai_game = is_ai_game  
         if is_ai_game:
             self.players["AI"] = game_logic.PLAYER2
         self.turn = game_logic.PLAYER1
@@ -81,7 +84,7 @@ class GameSession:
                     self.draw = True
                     print("Game is a draw.")
                 else:
-                    self.switch_turns()  # It's now the human player's turn
+                    self.switch_turns()  # It's now the player's turn
 
                 return ai_column  # Return the column where AI made its move for server notification
             else:

@@ -1,8 +1,11 @@
+# Student's name: Aladin Nour Mawasi
+# Student's ID: 316172410
+
 import random
-import game_logic  # Import your game logic to use constants like EMPTY, PLAYER1, etc.
+import game_logic  
 
 def random_ai_move(board):
-    import random
+    
     # Find columns that are not full
     valid_columns = [col for col in range(len(board[0])) if board[0][col] == game_logic.EMPTY]
     # Pick a random column from the list of valid columns
