@@ -3,26 +3,28 @@ import game_logic  # Make sure this import works based on your project structure
 import game_ai  # Importing the game AI logic
 
 class GameSession:
-    def __init__(self, player1, player2=None, ai_difficulty=None):
+    def __init__(self, player1, ai_difficulty=None, is_ai_game=False):
         self.session_id = str(uuid.uuid4())
         self.board = game_logic.create_board()
         self.players = {player1: game_logic.PLAYER1}
-        self.ai_difficulty = ai_difficulty  # Specify AI difficulty here
-        if player2 is None and ai_difficulty:
-            # AI game setup
+        self.ai_difficulty = ai_difficulty
+        self.is_ai_game = is_ai_game  # Now correctly set based on the constructor parameter
+        if is_ai_game:
             self.players["AI"] = game_logic.PLAYER2
-        elif player2:
-            # Two-player game setup
-            self.players[player2] = game_logic.PLAYER2
-        self.turn = game_logic.PLAYER1  # Player1 starts by default
+        self.turn = game_logic.PLAYER1
         self.winner = None
         self.draw = False
-        self.is_ai_game = bool(ai_difficulty)
-        self.state = "waiting"  # Initial state, will change to 'ready' or 'started'
+        self.state = "waiting"
+        print(f"GameSession initialized. AI game: {self.is_ai_game}, AI difficulty: {self.ai_difficulty}")
+
+
+
+
 
     def update_state(self, new_state):
         """Update the session's state."""
         self.state = new_state
+    
 
     def make_move(self, column, player_id):
         """Attempt to make a move on the board and handle AI response if applicable."""
@@ -51,22 +53,31 @@ class GameSession:
         self.turn = game_logic.PLAYER2 if self.turn == game_logic.PLAYER1 else game_logic.PLAYER1
 
     def make_ai_move(self):
-        """Makes a move for the AI based on the specified difficulty."""
-        if self.ai_difficulty and "AI" in self.players and self.turn == game_logic.PLAYER2:
+        print("Entering make_ai_move method.")
+        if self.is_ai_game and self.turn == game_logic.PLAYER2:
             ai_column = game_ai.ai_move(self.board, self.ai_difficulty)
-            print(f"AI chose column {ai_column} for its move.")
+            print(f"AI selected column {ai_column} for its move.")
 
             if ai_column is not None:
-                game_logic.make_move(self.board, ai_column, game_logic.PLAYER2)
-                # Check for win or draw after AI's move
+                made_move = game_logic.make_move(self.board, ai_column, game_logic.PLAYER2)
+                print(f"Move made by AI in column {ai_column}: {'Success' if made_move else 'Failed'}")
+                
+                # After making a move, check for win or draw
                 if game_logic.check_win(self.board, game_logic.PLAYER2):
                     self.winner = "AI"
+                    print("AI wins the game.")
                 elif game_logic.is_draw(self.board):
                     self.draw = True
+                    print("Game is a draw.")
                 else:
                     self.switch_turns()  # It's now the human player's turn
+
                 return ai_column  # Return the column where AI made its move for server notification
-        return None  # AI did not make a move (should not happen in practice, included for completeness)
+            else:
+                print("AI did not choose a valid column. This should be checked.")
+        else:
+            print("AI move not triggered due to game state or missing AI in players.")
+        return None
 
     def get_board_state(self):
         """Return the current game board."""
@@ -84,3 +95,8 @@ class GameSession:
     def serialize_board(self):
         """Return the board state as a string for easy transmission over the network."""
         return '\n'.join(['|'.join(row) for row in self.board])
+    
+    
+
+
+   

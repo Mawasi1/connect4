@@ -14,17 +14,23 @@ def log(message):
 
 def start_game(addr, game_type, ai_difficulty, data):
     log(f"Starting game for {addr}, game_type: {game_type}, AI difficulty: {ai_difficulty}")
-    if game_type == "2":
-        new_session = game_session.GameSession(player1=addr, ai_difficulty=ai_difficulty)
+    if game_type == "2":  # AI game
+        # Create a new session with is_ai_game explicitly set to True
+        new_session = game_session.GameSession(player1=addr, ai_difficulty=ai_difficulty, is_ai_game=True)
         active_sessions[new_session.session_id] = new_session
         data.session_id = new_session.session_id
         log(f"New AI game session created with ID {new_session.session_id} for player {addr}")
         response_message = "New AI game session created. Your turn or AI's turn depending on the game logic."
     else:
+        # Handle player vs player game session initialization
         assign_player_to_session(addr, data)
         response_message = "New player session created. Waiting for another player."
+    
     if data and hasattr(data, 'outb'):
         data.outb += response_message.encode('utf-8')
+
+
+
 
 def accept_wrapper(sock):
     conn, addr = sock.accept()
@@ -36,24 +42,20 @@ def accept_wrapper(sock):
     assign_player_to_session(addr, data)
 
 def assign_player_to_session(addr, data):
-    # Existing logic with a correction for immediate session readiness check
-    print(f"[LOG] Attempting to assign player {addr} to session...")
-    found_session = False
-
+    # Check if there's an existing session waiting for a player
     for session_id, session in active_sessions.items():
         if session.state == "waiting" and len(session.players) < 2:
             session.players[addr] = game_logic.PLAYER2
             data.session_id = session_id
-            found_session = True
             # Check if the session is now full and update state accordingly
             if len(session.players) == 2:
                 session.update_state("ready")
                 notify_players_session_ready(session_id)
-            break
+            return
 
-    if not found_session:
-        create_new_session(addr, data)
-
+    # If no existing session found, create a new session
+    create_new_session(addr, data)
+    
 def create_new_session(addr, data):
     new_session = game_session.GameSession(player1=addr)
     active_sessions[new_session.session_id] = new_session
@@ -98,15 +100,19 @@ def process_command(command, data, sock):
         game_type = args[1].upper()
         ai_difficulty = args[2] if len(args) > 2 else None
 
-        if current_session:
-            # If the session is ready or already started, ignore the START_GAME command
-            if current_session.state == "ready" or data.addr in current_session.players:
+        if game_type == "2":  # AI game
+            start_game(data.addr, game_type, ai_difficulty, data)
+        else:  # Player vs Player game
+            if current_session:
+                # If the player is already in a session, ignore the START_GAME command
                 log(f"Player {data.addr} already in an active or ready session ({data.session_id}). Ignoring START_GAME command.")
-                data.outb += "Game already started or session is ready. Please wait.".encode()
-                return
-
-        # Start a new game or join an existing one
-        start_game(data.addr, game_type, ai_difficulty, data)
+                data.outb += "You are already in a session. Please wait for another player or start a new game.".encode()
+            else:
+                assign_player_to_session(data.addr, data)
+                if data.session_id:
+                    data.outb += "New player session created. Waiting for another player.".encode()
+                else:
+                    data.outb += "Failed to create or join a session.".encode()
 
     elif args[0].upper() == "MOVE" and len(args) == 2:
         if not current_session:
@@ -131,44 +137,36 @@ def find_client_by_addr(addr):
     return None
 
 # Server initialization code remains unchanged
-
 def update_game_state(session, session_id):
-    log(f"Updating game state for session {session_id}.")
+    log(f"Updating game state for session {session_id}. Session is AI game: {session.is_ai_game}, Current turn: {session.turn}")
+
     game_status = session.get_game_status()
-    
     message = ""
-    
+
+    # Trigger the AI move if it's an AI game and it's the AI's turn
     if session.is_ai_game and session.turn == game_logic.PLAYER2:
         ai_column = session.make_ai_move()
-        if ai_column is not None:
-            log(f"AI made a move in column {ai_column}.")
-            message += f"AI moved to column {ai_column}.\n"
-            # After AI move, check game status again
-            game_status = session.get_game_status()
-        else:
-            log("AI failed to make a move or no valid moves available.")
-            message += "AI failed to make a move. Please check the game logic.\n"
-    
-    board_state = session.serialize_board()
-    message += f"Board State:\n{board_state}\n"
-    message += f"Game Status: {game_status}\n"
+        log(f"AI move triggered, selected column: {ai_column}")
 
+        if ai_column is not None:
+            message += f"AI moved to column {ai_column}.\n"
+            game_status = session.get_game_status()  # Refresh game status after AI's move
+            log(f"AI made a move in column {ai_column}. Game status: {game_status}")
+        else:
+            log("AI did not make a move. This should be checked.")
+    else:
+        log("AI move not triggered. Either not AI's turn or not an AI game.")
+
+    board_state = session.serialize_board()
+    message += f"Board State:\n{board_state}\nGame Status: {game_status}\n"
+
+    # Send the updated game state to all real players
     for addr in session.players.keys():
-        if addr != "AI":  # Send update only to real players
+        if addr != "AI":
             client = find_client_by_addr(addr)
             if client:
                 client.data.outb += message.encode("utf-8")
                 log(f"Updated game state sent to {addr}.")
-
-
-
-
-
-
-
-
-
-
 
 
 def find_client_by_addr(addr):

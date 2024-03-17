@@ -97,7 +97,6 @@ def handle_server_response(response, data):
             print("Invalid move. Try again.")
 
 
-
 def service_connection(key, mask):
     sock = key.fileobj
     data = key.data
